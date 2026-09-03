@@ -103,17 +103,19 @@ The last command is particularly useful for understanding branch history.
 A branch is a movable pointer to a line of development.
 
 ```text
-main
- |
- A---B
-             C---D  develop
+A---B                 main
+     \
+      C---D           develop
 ```
+
+In this example, `develop` was created from `main` at commit `B`.
 
 Commands:
 
 ```bash
 git branch
 git branch <branch-name>
+git branch -a
 git switch <branch-name>
 git switch -c <branch-name>
 git branch -d <branch-name>
@@ -124,6 +126,8 @@ Example:
 ```bash
 git switch -c feature/docker-environment
 ```
+
+This creates a new branch named `feature/docker-environment` from the current commit and switches to it.
 
 ## 9. Local vs Remote Branches
 
@@ -233,10 +237,9 @@ A merge combines the histories of two branches.
 Example:
 
 ```text
-main
-
-A---B
-           C---D  develop
+A---B                 main
+     \
+      C---D           develop
 ```
 
 Merge `develop` into `main`:
@@ -246,7 +249,21 @@ git switch main
 git merge develop
 ```
 
-Depending on the history, Git may perform a fast-forward merge or create a merge commit.
+If `main` has not advanced since `develop` was created, Git may perform a fast-forward merge:
+
+```text
+A---B---C---D         main, develop
+```
+
+If both branches have diverged, Git may create a merge commit:
+
+```text
+A---B-------E         main
+     \     /
+      C---D           develop
+```
+
+Git determines the merge strategy based on the commit history.
 
 ## 14. Pull Requests
 
