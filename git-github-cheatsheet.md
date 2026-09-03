@@ -90,13 +90,48 @@ git show <commit>
 
 ## 7. View History
 
+View the commit history:
+
 ```bash
 git log
+```
+
+Shows detailed information about commits, including commit hash, author, date, and commit message.
+
+Show a compact version of the history:
+
+```bash
 git log --oneline
+```
+
+Shows each commit on a single line using an abbreviated commit hash and commit message.
+
+Show a compact graphical view of all branches:
+
+```bash
 git log --oneline --all --graph
 ```
 
-The last command is particularly useful for understanding branch history.
+Useful for understanding how commits and branches relate to each other.
+
+Flags:
+
+- `--oneline` → display each commit in a compact single-line format
+- `--all` → include commits reachable from all local and remote-tracking branches
+- `--graph` → display branch and merge relationships using an ASCII graph
+
+For example:
+
+```text
+* C---D  develop
+| /
+|/
+* B       main
+*
+* A
+```
+
+The actual output depends on the repository history.
 
 ## 8. Branches
 
@@ -333,7 +368,9 @@ Review / automated checks
 main
 ```
 
-For this project we are using a slightly more structured variation:
+GitHub Flow is a lightweight workflow centered around a main branch and short-lived feature branches.
+
+For our projects, we are using a slightly more structured variation:
 
 ```text
 main
@@ -351,7 +388,7 @@ After a meaningful, tested milestone, `develop` can be merged into `main`.
 
 ## 16. Our Project Workflow
 
-For `ansible-server-usage-monitor`:
+For `ansible-server-usage-monitor` portfolio project, we are using the following branching workflow:
 
 ```text
 main
@@ -401,6 +438,8 @@ Pull Request
    ↓
 main
 ```
+
+The branching workflow described here is a reference for the portfolio project. The actual Git branches and Pull Requests are created and managed in the `ansible-server-usage-monitor` repository.
 
 ## 17. Undo / Restore Basics
 
