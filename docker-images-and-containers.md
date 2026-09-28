@@ -251,3 +251,27 @@ These commands are useful for troubleshooting container state and startup comman
 - Container writable data is ephemeral unless stored in a volume or bind mount.
 - Docker images are built from Dockerfiles using layered filesystem changes.
 - The build context determines which files are available during image build.
+
+---
+
+## Images and Registries
+
+Docker images can be shared through container registries. Docker Hub is a widely used public registry containing images for common operating systems, databases, applications, and other services.
+
+Other container registries include:
+
+- GitHub Container Registry (GHCR)
+- Google Artifact Registry
+- Amazon Elastic Container Registry (Amazon ECR)
+- Azure Container Registry
+
+Images can be pulled from registries and used to create containers. For example:
+
+```bash
+docker run ansible
+docker run mongodb
+docker run redis
+```
+
+The image name identifies the image that Docker needs to obtain before creating the container when it is not already available locally.
+
