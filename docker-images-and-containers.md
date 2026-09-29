@@ -2,6 +2,23 @@
 
 Notes from hands-on Docker practice on Ubuntu running inside WSL2.
 
+## Images vs Containers
+
+A **Docker image** is a packaged template used to create containers. A **container** is an instance of an image with its own isolated processes and environment. One image can be used to create multiple containers.
+
+```text
+             Docker image
+          (template/package)
+                  |
+          create containers
+          /       |       \
+         v        v        v
+    Container  Container  Container
+       #1         #2         #3
+```
+
+Images can be obtained from a registry or built from a Dockerfile. If a suitable public image is unavailable, you can build your own image and publish it to a registry such as Docker Hub, subject to the registry's access and publishing rules.
+
 ## Running a container in detached mode
 
 Start a container in the background:
@@ -154,6 +171,32 @@ Files written to `/data` are stored directly on the host.
 
 ---
 
+## How an Image Gets Built and Shared
+
+A common image workflow is:
+
+```text
+Dockerfile -- docker build --> Image -- docker push --> Registry
+                                     ^
+                                     |
+                         docker pull from registry
+```
+
+The Dockerfile records the instructions for assembling an image. Developers and operations teams can collaborate on the Dockerfile so that application requirements and operational needs are represented in a repeatable build. The resulting image can then be run on compatible hosts with Docker, helping provide a consistent application environment.
+
+Typical commands:
+
+```bash
+docker build -t my-app:1.0 .
+docker tag my-app:1.0 username/my-app:1.0
+docker push username/my-app:1.0
+docker pull username/my-app:1.0
+```
+
+The `docker tag` and `docker push` examples assume you have a Docker Hub account, have authenticated with `docker login`, and are using a repository you are allowed to publish to. Replace the example names with your own image and registry details.
+
+---
+
 ## Building a custom image
 
 Dockerfile:
@@ -242,6 +285,21 @@ These commands are useful for troubleshooting container state and startup comman
 
 ---
 
+## Command reference
+
+This file explains commands in the context of image/container behaviour. For the consolidated command reference—including common flags such as `-d`, `--name`, `--rm`, `-it`, port mapping, image management, cleanup, volumes, networking, and Compose—see [`docker-basics.md`](docker-basics.md).
+
+The commands used in this file include:
+
+- `docker run` — creates a new container from an image; options such as `-d`, `--name`, `--rm`, and `-v` control how it runs.
+- `docker ps` / `docker ps -a` — list running containers / all containers including stopped ones.
+- `docker stop` / `docker start` / `docker rm` — stop, restart, or remove a container.
+- `docker exec -it <container> bash` — start an interactive shell as an additional process in a running container.
+- `docker build -t <name>:<tag> .` — build an image from the Dockerfile in the current build context.
+- `docker tag`, `docker push`, and `docker pull` — tag an image, publish it to a registry, or download it from a registry.
+- `docker images` / `docker rmi` — list local images or remove a local image reference.
+- `docker inspect` — view detailed container or image metadata.
+
 ## Key takeaways
 
 - Containers are isolated processes, not virtual machines.
@@ -250,22 +308,25 @@ These commands are useful for troubleshooting container state and startup comman
 - `docker exec -it` is used to troubleshoot running containers.
 - Container writable data is ephemeral unless stored in a volume or bind mount.
 - Docker images are built from Dockerfiles using layered filesystem changes.
-- The build context determines which files are available during image build.
+- The build context determines which files are available during image build.- One image can be used to create multiple containers.
+- Images can be built from Dockerfiles and shared through registries.
+- Tags identify image references; avoid relying on a moving `latest` tag for repeatable deployments.
+- A container's main process controls its lifecycle.
 
 ---
 
-## Images and Registries
+## Images, Registries, and Tags
 
-Docker images can be shared through container registries. Docker Hub is a widely used public registry containing images for common operating systems, databases, applications, and other services.
+Container registries store and distribute images. Docker Hub is a widely used public registry containing images for common operating systems, databases, applications, and other services.
 
-Other container registries include:
+Other registries include:
 
 - GitHub Container Registry (GHCR)
 - Google Artifact Registry
 - Amazon Elastic Container Registry (Amazon ECR)
 - Azure Container Registry
 
-Images can be pulled from registries and used to create containers. For example:
+If an image is not available locally, Docker can pull it from a registry when running a command such as:
 
 ```bash
 docker run ansible
@@ -273,5 +334,28 @@ docker run mongodb
 docker run redis
 ```
 
-The image name identifies the image that Docker needs to obtain before creating the container when it is not already available locally.
+The examples use short image names. Docker resolves these to the appropriate registry/name defaults when no registry is specified, and it uses the default `latest` tag when no tag is supplied.
+
+### Image tags
+
+A tag identifies a particular image reference, often associated with a software version or variant. Specify a tag after a colon:
+
+```bash
+docker run redis:7.4
+docker images
+docker rmi redis:7.4
+```
+
+Example `docker images` output:
+
+```text
+REPOSITORY   TAG     IMAGE ID
+redis        8.6.1   036...
+redis        7.4     f5d...
+```
+
+To find available tags, check the image's page in its registry, such as Docker Hub.
+
+**Important:** `latest` is a tag name, not a guarantee that the image is the newest or most stable version. It is a moving reference that publishers can update. For repeatable deployments, prefer an intentional version tag such as `redis:7.4-alpine`, after checking that it matches your compatibility and security requirements. Even a version tag can be updated in some registries; digest pinning provides a more immutable image reference when strict reproducibility is required.
+
 

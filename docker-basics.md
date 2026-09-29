@@ -91,14 +91,86 @@ Each VM includes a guest OS.              Containers share the
 
 The key distinction is that a virtual machine virtualizes the hardware environment and runs a complete guest operating system, while a container isolates processes while sharing the host kernel.
 
-## Commands
+## Docker Command Reference
 
-- `docker --version`
-- `docker run hello-world`
-- `docker ps`
-- `docker ps -a`
-- `docker images`
-- `docker compose version`
+Use `docker --help` or `docker <command> --help` (for example, `docker run --help`) to see supported options. Exact options can vary by Docker version.
+
+### Check Docker and discover resources
+
+| Command | What it does / useful options |
+|---|---|
+| `docker --version` | Prints the Docker CLI version. It does not by itself prove the Docker Engine is running. |
+| `docker info` | Shows details about the Docker Engine, host, storage driver, and configured resources. |
+| `docker compose version` | Shows the installed Docker Compose version. |
+| `docker ps` | Lists running containers. `-a` includes stopped containers; `-q` prints only container IDs. |
+| `docker images` | Lists local images. `-a` includes intermediate images; `-q` prints image IDs. `docker image ls` is the newer equivalent form. |
+| `docker network ls` | Lists Docker networks. |
+| `docker volume ls` | Lists Docker-managed volumes. |
+
+### Run and manage containers
+
+| Command | What it does / useful options |
+|---|---|
+| `docker run hello-world` | Creates and runs a container from the image; Docker pulls the image if needed. `hello-world` exits after printing its message. |
+| `docker run nginx` | Creates and runs a container in the foreground by default. If the main process exits, the container stops. |
+| `docker run -d --name web1 nginx` | `-d` runs detached (background); `--name` assigns a readable container name. |
+| `docker run --rm image command` | Removes the container automatically after it exits. Useful for temporary tasks; it does not remove the image. |
+| `docker run -it ubuntu bash` | `-i` keeps standard input open and `-t` allocates a terminal, allowing an interactive shell. |
+| `docker run -p 8080:80 nginx` | Publishes host port 8080 to container port 80. Format: `HOST_PORT:CONTAINER_PORT`. |
+| `docker run -v ~/web-content:/usr/share/nginx/html nginx` | Mounts a host path into the container. `HOST_PATH:CONTAINER_PATH` is a bind mount; the target path depends on the application. |
+| `docker stop <container>` | Gracefully asks a running container to stop. Use a name or ID. |
+| `docker start <container>` | Starts an existing stopped container. It does not create a new container. |
+| `docker rm <container>` | Removes a stopped container. Stop it first if it is still running. `-f` force-removes a running or stopped container. |
+| `docker exec <container> <command>` | Runs an additional command in an already-running container. Add `-it` for an interactive terminal, e.g. `docker exec -it web1 sh`. |
+| `docker attach <container>` | Connects the terminal to the main process's standard input/output streams; it does not start a new process. Be careful with interactive signals. |
+| `docker logs <container>` | Displays the container's captured output. `-f` follows new output; `--tail 100` shows the last 100 lines. |
+| `docker inspect <container-or-image>` | Shows detailed JSON metadata. `--format '{{.State.Status}}'` can extract a specific field. |
+| `docker port <container>` | Shows published port mappings for a container. |
+
+### Download, build, tag, and publish images
+
+| Command | What it does / useful options |
+|---|---|
+| `docker pull nginx:tag` | Downloads an image from a registry. Specify `:tag` to choose a version; without one, Docker defaults to `latest`. |
+| `docker build -t my-app:1.0 .` | Builds an image from a Dockerfile in the build context. `-t` sets the image name and tag; `.` means the current directory is the build context. |
+| `docker tag my-app:1.0 username/my-app:1.0` | Adds another name/tag to the same local image; it does not rebuild the image. |
+| `docker login` | Authenticates with a registry before pushing private or owned images. |
+| `docker push username/my-app:1.0` | Uploads the tagged image to a registry where you have permission to publish. |
+| `docker rmi nginx:tag` | Removes a local image reference. Containers that use the image may need to be removed first; an image used by multiple tags may remain under another tag. |
+
+### Volumes, networks, and cleanup
+
+| Command | What it does / useful options |
+|---|---|
+| `docker volume create app-data` | Creates a named volume for persistent data. |
+| `docker volume inspect app-data` | Shows volume details, including its mountpoint on the Docker host. |
+| `docker volume rm app-data` | Removes a volume that is not in use by a container. Check the volume before deleting it. |
+| `docker volume prune` | Removes unused local volumes after confirmation. Check carefully before confirming because volume data can be lost. |
+| `docker container prune` | Removes all stopped containers after confirmation. |
+| `docker system prune` | Removes unused Docker resources, including stopped containers, unused networks, dangling images, and build cache. Review the prompt before confirming; `-a` removes more unused images. |
+| `docker compose up -d` | Creates/starts services defined in the Compose file; `-d` runs them in the background. |
+| `docker compose ps` | Shows the status of services/containers managed by the current Compose project. |
+| `docker compose down` | Stops and removes the Compose project's containers and networks. Named volumes are not removed by default; `-v` also removes declared named volumes and attached anonymous volumes. Use with care. |
+
+### Quick command patterns
+
+```bash
+# Run a named container in the background
+docker run -d --name web1 -p 8080:80 nginx
+
+# Check running and stopped containers
+docker ps
+docker ps -a
+
+# Open a shell in a running container
+docker exec -it web1 sh
+
+# Build and run a custom image
+docker build -t my-app:1.0 .
+docker run --rm my-app:1.0
+```
+
+**Important distinctions:** `docker run` creates a new container; `docker start` restarts an existing one. `docker stop` preserves the container and its writable layer; `docker rm` deletes the container and that writable layer. Data intended to outlive a container should be stored in a volume or bind mount. `docker system prune` and volume-removal commands can delete data/resources, so review their scope before confirming.
 
 ## Key Concepts Learned
 
