@@ -56,19 +56,54 @@ Reason: nothing was listening on host port 80.
 
 ---
 
-## Port mapping syntax
+## Port mapping / port publishing
 
-```text
-HOST_PORT:CONTAINER_PORT
-```
+A containerized web application can be running successfully inside a container without being directly reachable from outside the Docker host.
+
+Each container can have an IP address on its Docker network, but this address is normally internal to the Docker host. To make a containerized service reachable through the Docker host, publish a container port to a host port.
+
+The `-p` option publishes a container port on the Docker host.
 
 Example:
 
-```text
-8080:80
+```bash
+docker run -p 80:5000 <image>
 ```
 
-Traffic sent to host port **8080** is forwarded to container port **80**.
+This maps:
+
+```text
+Host port 80  →  Container port 5000
+```
+
+The application can then be reached using the Docker host's IP address and port:
+
+```text
+http://<host-IP>:80
+```
+
+Basic syntax:
+
+```text
+-p <host-port>:<container-port>
+```
+
+For example:
+
+```bash
+docker run -d --name web1 -p 8080:80 nginx
+```
+
+means:
+
+```text
+Host:      8080
+             |
+             v
+Container:  80
+```
+
+The host port and container port do not have to be the same. Multiple containers can therefore expose the same container port while using different host ports.
 
 ---
 
@@ -196,6 +231,8 @@ The favicon 404 is normal because the file does not exist in the default Nginx i
 * Host ports must be unique on the host.
 * Docker publishes services using port forwarding/NAT.
 * `docker logs` is useful for troubleshooting containerized applications.
+* The `-p` option publishes a container port through a host port.
+* Host and container ports do not need to be the same.
 
 ---
 

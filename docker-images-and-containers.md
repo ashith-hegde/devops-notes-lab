@@ -70,6 +70,40 @@ docker exec -it ubuntu-shell bash
 
 Exit the shell with `exit`. The container continues running because PID 1 is still `sleep infinity`.
 
+## Interactive mode
+
+Interactive mode is commonly used when you need to provide input to a container or work with a shell interactively.
+
+```text
+-i  → keeps STDIN open
+-t  → allocates a pseudo-terminal (TTY)
+-it → combines both
+```
+
+Example:
+
+```bash
+docker run -it <image>
+```
+
+`-i` keeps standard input open, while `-t` allocates a pseudo-terminal. Together, `-it` is commonly used for an interactive terminal session.
+
+Without `-i`, attaching a terminal does not necessarily mean keyboard input will be passed to the container's standard input.
+
+### Piping input into a container
+
+`-i` can also be useful when input is provided through a pipe rather than an interactive terminal.
+
+Example:
+
+```bash
+cat schema.sql | docker run -i postgres psql -U postgres -d mydb
+```
+
+Here, the contents of `schema.sql` are passed to the container process through standard input.
+
+The `-t` option is generally not needed for piped input because there is no interactive terminal session.
+
 ---
 
 ## PID 1 and container lifecycle
