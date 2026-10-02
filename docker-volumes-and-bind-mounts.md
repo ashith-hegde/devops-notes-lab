@@ -102,6 +102,104 @@ This shows where Docker stored the volume data on the host.
 
 ---
 
+# Persisting Application Data
+
+A container has its own isolated writable filesystem. Data written only into that filesystem is lost when the container is removed.
+
+For example, a database container may store its database files under a path such as:
+
+```text
+/var/lib/mysql
+```
+
+If the container is removed without persistent storage, the data in its writable layer is removed with it.
+
+A bind mount can map a directory on the Docker host to the application's data directory inside the container:
+
+```bash
+docker run -v /opt/datadir:/var/lib/mysql mysql
+```
+
+Here:
+
+```text
+/opt/datadir
+     ↓
+Docker host directory
+
+/var/lib/mysql
+     ↓
+Directory inside the MySQL container
+```
+
+The data stored under `/opt/datadir` remains on the host even if the MySQL container is removed. The exact data directory depends on the application or database image being used.
+
+---
+
+# `-v` vs `--mount`
+
+Both forms can configure mounts.
+
+## `-v` — Short Syntax
+
+`-v` uses a compact colon-separated form.
+
+Bind mount:
+
+```bash
+docker run -v /opt/datadir:/var/lib/mysql mysql
+```
+
+Named volume:
+
+```bash
+docker run -v nginx-data:/usr/share/nginx/html nginx
+```
+
+General form:
+
+```text
+-v SOURCE:TARGET
+```
+
+`SOURCE` is either a host path or a Docker-managed named volume, and `TARGET` is the path inside the container.
+
+## `--mount` — Explicit Syntax
+
+`--mount` uses key-value pairs and makes the mount type explicit.
+
+Bind mount:
+
+```bash
+docker run --mount type=bind,source=/opt/datadir,target=/var/lib/mysql mysql
+```
+
+Named volume:
+
+```bash
+docker run --mount type=volume,source=nginx-data,target=/usr/share/nginx/html nginx
+```
+
+For a bind mount:
+
+```text
+type=bind
+source=<host-path>
+target=<container-path>
+```
+
+For a named volume:
+
+```text
+type=volume
+source=<volume-name>
+target=<container-path>
+```
+
+`--mount` is more verbose but makes the mount configuration explicit, which can make complex configurations easier to read.
+
+---
+
 # Bind Mount Lab
 
 ## Create a host directory
@@ -209,6 +307,14 @@ Check remaining volumes:
 docker volume ls
 ```
 
+If the lab volume is no longer needed, remove it explicitly:
+
+```bash
+docker volume rm nginx-data
+```
+
+Removing a volume deletes the data stored in that volume, so verify that it is no longer needed before running the command.
+
 ---
 
 # What I Learned
@@ -218,4 +324,5 @@ docker volume ls
 * I verified that bind mounts reflect host file changes immediately.
 * I understood the practical difference between Docker-managed storage and host-managed storage.
 * I practiced cleaning up temporary Docker resources after completing a lab.
+* I understand that persistent application data must be stored outside the container writable layer when it needs to survive container removal.
 
