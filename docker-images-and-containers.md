@@ -265,11 +265,40 @@ Hello from my first Docker image
 
 ## Dockerfile instructions
 
+A Dockerfile is an instruction-and-argument format. Instructions are conventionally written in uppercase.
+
 | Instruction | Purpose |
 |---|---|
-| `FROM` | Base image |
-| `RUN` | Execute commands during build |
-| `CMD` | Default command when container starts |
+| `FROM` | Defines the base image. A Dockerfile normally starts with `FROM`. |
+| `RUN` | Executes commands during the image build. |
+| `COPY` | Copies files or directories from the build context into the image. |
+| `ADD` | Similar to `COPY` with additional behavior; `COPY` is generally preferred for ordinary file copying. |
+| `WORKDIR` | Sets the working directory for subsequent instructions and the container process. |
+| `ENV` | Defines environment variables in the image. |
+| `EXPOSE` | Documents the port the application is intended to listen on; it does not publish the port to the host by itself. |
+| `CMD` | Provides the default command or arguments when a container starts. |
+| `ENTRYPOINT` | Configures the main executable for the container. |
+
+Example structure:
+
+```dockerfile
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+ENV APP_ENV=production
+EXPOSE 5000
+
+ENTRYPOINT ["python"]
+CMD ["app.py"]
+```
+
+`CMD` provides defaults that can be replaced by a runtime command. `ENTRYPOINT` defines the executable the container is intended to run; runtime arguments are normally appended to it.
 
 Example:
 
@@ -298,6 +327,63 @@ docker build -t my-first-image .
 The final `.` means **current directory** and becomes the **build context**.
 
 Docker sends files from that directory to the Docker daemon. Only files inside the build context can be copied into the image.
+
+A `.dockerignore` file can be used to exclude files that do not need to be sent as build context. Keeping the build context focused can reduce unnecessary data transfer and avoid accidentally including files that should not be part of the image build.
+
+---
+
+## Docker image layers
+
+Docker builds images using layers. Each relevant Dockerfile instruction can contribute a filesystem layer, and later layers build on top of earlier ones.
+
+Example:
+
+```text
+Dockerfile
+
+FROM python:3.12-slim     ──> Layer 1: base image
+WORKDIR /app              ──> Layer 2
+COPY requirements.txt .   ──> Layer 3
+RUN pip install ...       ──> Layer 4
+COPY . .                  ──> Layer 5
+```
+
+Conceptually:
+
+```text
++-----------------------------+
+| Layer 5: application code   |
++-----------------------------+
+| Layer 4: Python packages    |
++-----------------------------+
+| Layer 3: requirements file  |
++-----------------------------+
+| Layer 2: /app configuration |
++-----------------------------+
+| Layer 1: base image         |
++-----------------------------+
+```
+
+Inspect image layer history with:
+
+```bash
+docker history my-first-image
+```
+
+### Build cache
+
+Docker can reuse cached build results when the relevant inputs and instructions have not changed. Dockerfile instruction order therefore affects how much of a build can be reused.
+
+For example, keeping dependency installation separate from application source copying can allow the dependency-related step to remain cached when only application code changes:
+
+```dockerfile
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+```
+
+This can make repeated image builds faster.
 
 ---
 
