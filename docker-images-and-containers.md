@@ -316,6 +316,208 @@ The runtime command overrides the image's default `CMD`.
 
 ---
 
+### CMD, ENTRYPOINT, and ARG
+
+These instructions solve different problems:
+
+| Instruction | Purpose | When it applies |
+|---|---|---|
+| `CMD` | Provides a default command or default arguments for the container | Runtime |
+| `ENTRYPOINT` | Defines the main executable for the container | Runtime |
+| `ARG` | Defines a variable that can be supplied during the image build | Build time |
+
+#### Why does `docker run ubuntu` exit?
+
+A container only remains running while its main process is running.
+
+The Ubuntu image uses Bash as its default command:
+
+```dockerfile
+CMD ["bash"]
+```
+
+When you run:
+
+```bash
+docker run ubuntu
+```
+
+Docker starts Bash without an interactive terminal attached. Bash has no interactive session to maintain, so it exits, and the container exits with it.
+
+This illustrates the basic container lifecycle:
+
+```text
+Container starts
+      |
+      v
+Main process starts
+      |
+      v
+Process completes/exits
+      |
+      v
+Container exits
+```
+
+Containers are therefore normally designed to run a specific application, service, or task rather than behave like a full virtual machine.
+
+#### Override `CMD` at runtime
+
+A command appended to `docker run` replaces the image's default `CMD`.
+
+For example:
+
+```bash
+docker run ubuntu sleep 5
+```
+
+This starts `sleep 5` instead of the Ubuntu image's default Bash command.
+
+#### Define a different default with `CMD`
+
+You can create your own image:
+
+```dockerfile
+FROM ubuntu
+CMD ["sleep", "5"]
+```
+
+Now:
+
+```bash
+docker run my-sleeper
+```
+
+runs:
+
+```text
+sleep 5
+```
+
+The command can still be replaced at runtime:
+
+```bash
+docker run my-sleeper sleep 10
+```
+
+which runs:
+
+```text
+sleep 10
+```
+
+#### Use `ENTRYPOINT` for a fixed executable
+
+`ENTRYPOINT` is useful when the image is intended to run a particular executable and the runtime argument should be treated as an argument to that executable.
+
+```dockerfile
+FROM ubuntu
+ENTRYPOINT ["sleep"]
+```
+
+Now:
+
+```bash
+docker run ubuntu-sleeper 10
+```
+
+runs:
+
+```text
+sleep 10
+```
+
+#### Use `ENTRYPOINT` and `CMD` together
+
+A common pattern is to use `ENTRYPOINT` for the executable and `CMD` for its default arguments:
+
+```dockerfile
+FROM ubuntu
+ENTRYPOINT ["sleep"]
+CMD ["5"]
+```
+
+The default behavior is:
+
+```text
+sleep 5
+```
+
+But the default argument can be overridden:
+
+```bash
+docker run ubuntu-sleeper 10
+```
+
+which runs:
+
+```text
+sleep 10
+```
+
+This pattern is useful when the executable should remain fixed while its default arguments remain configurable.
+
+#### Override `ENTRYPOINT` at runtime
+
+If you need to replace the image's entrypoint completely, use `--entrypoint`:
+
+```bash
+docker run --entrypoint /bin/sh ubuntu-sleeper
+```
+
+This replaces the image's configured `ENTRYPOINT` with `/bin/sh`.
+
+#### Shell form vs exec form
+
+Dockerfile commands such as `CMD` and `ENTRYPOINT` can be written in shell form or exec form.
+
+Exec form:
+
+```dockerfile
+CMD ["sleep", "5"]
+ENTRYPOINT ["sleep"]
+```
+
+Shell form:
+
+```dockerfile
+CMD sleep 5
+ENTRYPOINT sleep
+```
+
+The **exec form** is generally preferred for applications because Docker starts the specified executable directly, which gives clearer process and signal behavior.
+
+#### Build-time `ARG`
+
+`ARG` is different from `CMD` and `ENTRYPOINT` because it is used during image construction rather than when the container starts.
+
+Example:
+
+```dockerfile
+FROM ubuntu
+
+ARG APP_VERSION=1.0
+RUN echo "Building version ${APP_VERSION}"
+```
+
+Build with the default:
+
+```bash
+docker build -t my-app .
+```
+
+Override it during the build:
+
+```bash
+docker build --build-arg APP_VERSION=2.0 -t my-app .
+```
+
+`ARG` is primarily a build-time value. If a value is needed by the application when the container runs, `ENV` is generally the more appropriate mechanism.
+
+Do not use `ARG` for secrets. Build arguments can be exposed through image build metadata/history, which is why BuildKit secret mounts are preferred for sensitive build-time credentials.
+
+---
+
 ## Build context
 
 Command:
