@@ -518,6 +518,89 @@ Do not use `ARG` for secrets. Build arguments can be exposed through image build
 
 ---
 
+## Environment Variables
+
+Applications often need configuration that can change between environments, such as a web application's background color, without changing the application code. Environment variables provide a way to supply this configuration from outside the application.
+
+For example, outside Docker, an application can read `APP_COLOR` from the environment:
+
+```bash
+APP_COLOR=blue python app.py
+```
+
+The same application can then be run with a different value without modifying the source code:
+
+```bash
+APP_COLOR=red python app.py
+```
+
+### Docker: the `-e` flag
+
+When the application is packaged into a Docker image, use `docker run -e` to set an environment variable for the new container:
+
+```bash
+docker run -e APP_COLOR=blue simple-webapp
+docker run -e APP_COLOR=red simple-webapp
+```
+
+Each container can therefore receive different configuration from the same image.
+
+### `ENV` versus `docker run -e`
+
+The Dockerfile `ENV` instruction defines a default environment variable in the image:
+
+```dockerfile
+ENV APP_COLOR=blue
+```
+
+A value supplied with `docker run -e` can override that default for the container:
+
+```bash
+docker run -e APP_COLOR=red simple-webapp
+```
+
+This gives a useful separation between the image and runtime configuration:
+
+```text
+Dockerfile
+    |
+    | ENV APP_COLOR=blue
+    v
+   Image
+    |
+    | docker run -e APP_COLOR=red
+    v
+ Container
+    |
+    v
+APP_COLOR=red
+```
+
+### Inspecting environment variables
+
+To inspect the configuration of an existing container, use `docker inspect`:
+
+```bash
+docker inspect <container>
+```
+
+Environment variables are available under the container's `Config.Env` section. For a more focused output, use a format expression:
+
+```bash
+docker inspect <container> --format '{{range .Config.Env}}{{println .}}{{end}}'
+```
+
+Example output:
+
+```text
+PATH=/usr/local/bin:/usr/bin:/bin
+APP_COLOR=red
+```
+
+`docker inspect` shows container configuration and metadata, so avoid putting sensitive values such as passwords or tokens into environment variables if they need to be protected from users who can inspect the container.
+
+---
+
 ## Build context
 
 Command:
