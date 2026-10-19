@@ -15,24 +15,26 @@ Practise operating and troubleshooting Docker containers using a single local la
 - **Reported memory:** 3.746 GiB
 - **Swarm:** inactive
 
-These values describe the environment at the time of the baseline check and may change. The Docker daemon reports four stopped containers and six images before this lab. Existing containers include `mailpit`, `server1`, `server2`, and `server3`; do not remove or modify them as part of cleanup unless explicitly intended.
+These values describe the environment at the time of the baseline check and may change. The environment already contained Docker resources before the lab began. Inspect resources before removing anything, and clean up only resources created specifically for this lab.
 
 ## Lab Checkpoints
 
 ### 1. Baseline and Lab Setup
 
-- [ ] Review Docker Engine, Compose, storage, cgroup, and resource information.
-- [ ] Confirm the lab uses newly named resources to avoid conflicts with existing containers and volumes.
-- [ ] Create a dedicated working directory for lab files.
-- [ ] Record the commands and relevant baseline observations.
+- [x] Review Docker Engine, Compose, storage, cgroup, and resource information.
+- [x] Confirm the lab uses newly named resources to avoid conflicts with existing containers and volumes.
+- [x] Create a dedicated working directory for lab files.
+- [x] Record the commands and relevant baseline observations.
 
 ### 2. Health Checks and Restart Policies
 
-- [ ] Create a small test service with a health check.
-- [ ] Observe healthy and unhealthy states.
-- [ ] Compare container process state with application health.
-- [ ] Test restart policies and record what triggers a restart.
-- [ ] Verify that an unhealthy status alone does not necessarily restart a container.
+- [x] Create a small test service with a health check.
+- [x] Observe healthy and unhealthy states.
+- [x] Compare container process state with application health.
+- [x] Test restart policies and record what triggers a restart.
+- [x] Verify that an unhealthy status alone does not necessarily restart a container.
+
+See [`docker-healthchecks-and-restart-policies.md`](docker-healthchecks-and-restart-policies.md) for the concepts, commands, observations, and conclusions from this checkpoint.
 
 ### 3. Resource Limits and Monitoring
 
@@ -94,21 +96,60 @@ These values describe the environment at the time of the baseline check and may 
 
 ## Results and Observations
 
-> Add real command output and observations here as each checkpoint is completed. Do not pre-fill expected output as if it were observed.
+> Record real command output and observations here as each checkpoint is completed. Do not pre-fill expected output as if it were observed.
 
 ### Checkpoint 1 — Baseline and Setup
 
-**Commands run:**
-
-_TODO_
-
 **Observations:**
 
-_TODO_
+- The lab was run in Ubuntu on WSL2.
+- Docker Engine 29.7.1 and Docker Compose v5.4.0 were reported at baseline.
+- The daemon reported the `overlayfs` storage driver, cgroup v2, 8 CPUs, approximately 3.746 GiB of memory, and inactive Swarm mode.
+- A dedicated working directory was created for the lab.
 
 ### Checkpoint 2 — Health Checks and Restart Policies
 
-_TODO_
+**Health-check experiment:**
+
+A detached Nginx container named `ops-healthcheck` was created with a `wget` health check against `http://127.0.0.1/`, a 5-second interval, a 3-second timeout, and two retries.
+
+```bash
+docker run -d --name ops-healthcheck \
+  --health-cmd='wget -q -O /dev/null http://127.0.0.1/ || exit 1' \
+  --health-interval=5s \
+  --health-timeout=3s \
+  --health-retries=2 \
+  nginx:alpine
+```
+
+- The container initially reported `running healthy`.
+- Moving `/usr/share/nginx/html/index.html` to a backup filename caused the health check to fail. The container continued running but became `unhealthy`; the check received HTTP `403 Forbidden` because the default index file was missing and directory listing was not available.
+- Restoring the index file returned the container to `running healthy`. The latest health-check records had `ExitCode: 0`.
+- The experiment demonstrated that container process state and application health are separate signals.
+
+**Health check versus restart policy:**
+
+The restart policy was set to `unless-stopped`:
+
+```bash
+docker update --restart unless-stopped ops-healthcheck
+docker inspect --format '{{.HostConfig.RestartPolicy.Name}}' ops-healthcheck
+```
+
+The policy inspection returned `unless-stopped`. After the index file was moved again, the observed state was:
+
+```text
+running unhealthy 0
+```
+
+The container did not restart merely because its health check failed. The index file was restored afterward.
+
+**Process-exit experiments:**
+
+- A direct `docker kill --signal=SIGKILL` against a container configured with `unless-stopped` left it exited with code `137` and restart count `0`. A direct, explicit stop/kill operation is not a reliable way to demonstrate an unexpected process failure because Docker treats it as a manual stop for restart-policy purposes.
+- A separate Alpine container was created with `--restart on-failure` and a command that slept for 15 seconds before exiting with status `1`. Its observed restart count increased from `1` to `2` across successive inspections, and it was running at both inspection times. This confirmed that `on-failure` restarted it after non-zero exits.
+- For another `unless-stopped` test, killing the container's main process from inside its own PID namespace did not terminate it. The container's PID 1 has special signal-handling behavior. After the process was terminated from the host PID namespace with elevated privileges, Docker restarted the container: the host PID changed from `13828` to `19479`, and `RestartCount` became `1`.
+- The temporary test containers `restart-test`, `restart-test2`, and `restart-test3` were removed after the experiments. `ops-healthcheck` was retained for later lab work.
 
 ### Checkpoint 3 — Resource Limits and Monitoring
 
@@ -140,7 +181,11 @@ _TODO_
 
 ## Key Takeaways
 
-_To be completed after the lab using observed results._
+- A container can be `running` while its health status is `unhealthy`.
+- A Docker health check reports health; by itself, an unhealthy status does not cause Docker to restart the container.
+- Restart policies respond to the main process exiting, subject to the configured policy and Docker's manual-stop behavior.
+- `RestartCount`, `.State.ExitCode`, `.State.Health.Status`, and Docker lifecycle events help distinguish process exits from health-check failures.
+- Prefer Docker's container-management commands for routine operations instead of directly signalling host-side container processes.
 
 ## Related Notes
 
