@@ -38,11 +38,17 @@ See [`docker-healthchecks-and-restart-policies.md`](docker-healthchecks-and-rest
 
 ### 3. Resource Limits and Monitoring
 
-- [ ] Inspect live usage with `docker stats`.
-- [ ] Run a test container with CPU and memory limits.
-- [ ] Observe resource constraints and relevant container inspection fields.
+- [x] Inspect live usage with `docker stats`.
+- [x] Check Docker's cgroup driver and version.
+- [x] Run a test container with CPU and memory limits.
+- [x] Inspect configured memory, memory-plus-swap, and CPU limit fields.
+- [x] Generate CPU load and observe the effect of the 0.5 CPU limit.
+- [x] Stop the CPU workload and verify usage returns to idle.
+- [x] Compare temporary disk-file usage with reported container memory usage.
+- [ ] Complete a controlled memory-allocation experiment.
 - [ ] Safely test memory pressure / OOM behavior.
 - [ ] Record exit status and whether Docker reports `OOMKilled`.
+
 
 ### 4. Troubleshooting Workflow
 
@@ -153,7 +159,48 @@ The container did not restart merely because its health check failed. The index 
 
 ### Checkpoint 3 — Resource Limits and Monitoring
 
-_TODO_
+**Baseline and cgroups:**
+
+- `docker ps` showed only `ops-healthcheck` running before the resource test was created.
+- `docker stats --no-stream` reported `ops-healthcheck` using `9.449 MiB / 3.746 GiB`, with `0.00%` CPU at the sampled instant.
+- `docker info` reported cgroup driver `systemd` and cgroup version `2`.
+
+**Memory limit:**
+
+A dedicated Alpine test container named `ops-resource-test` was created with a 128 MiB memory limit and `--memory-swap=128m`:
+
+```bash
+docker run -d \
+  --name ops-resource-test \
+  --memory=128m \
+  --memory-swap=128m \
+  alpine:3.22 \
+  sh -c 'while true; do sleep 5; done'
+```
+
+- `docker inspect` reported `Memory=134217728` and `MemorySwap=134217728`; these values are bytes and correspond to 128 MiB each.
+- At the baseline sample, `docker stats` reported approximately `2.324 MiB / 128 MiB`.
+
+**CPU limit:**
+
+The container was updated to use half a CPU:
+
+```bash
+docker update --cpus="0.5" ops-resource-test
+```
+
+- `docker inspect` reported `NanoCpus=500000000`, representing 0.5 CPU. `CpuQuota` and `CpuPeriod` were `0` in this inspection output; the configured limit was represented through `NanoCpus`.
+- A busy loop was started inside the container. `docker stats` reported `50.01%` CPU, consistent with the 0.5 CPU limit in this environment.
+- `docker top` showed host-side PIDs, while `ps` executed inside the container showed container-side PIDs. Using the container-side PID (`62`) stopped the busy loop, after which CPU usage returned to `0.00%`.
+
+**Disk writes versus memory usage:**
+
+A background process wrote 2 MiB zero-filled files under `/tmp` in repeated iterations. At one observation point:
+
+- `du -sh /tmp` reported `68.0M`.
+- `docker stats` reported approximately `4.656 MiB / 128 MiB` of memory, `36.7 MB` block I/O, and four PIDs.
+
+This demonstrates that the amount of data written to disk is not equivalent to the amount of resident memory reported by `docker stats`. The memory-pressure and OOM behavior experiment has **not** yet been completed; do not treat the file-writing test as an OOM test.
 
 ### Checkpoint 4 — Troubleshooting Workflow
 
