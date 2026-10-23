@@ -10,11 +10,6 @@ Key characteristics:
 - **Scalability:** Resources can be increased or decreased to match workload requirements.
 - **Broad applicability:** AWS supports workloads across many industries and use cases.
 
-### Cloud vs. On-Premises Infrastructure
-
-- **On-premises:** An organization typically purchases, installs, and operates physical infrastructure in its own data center.
-- **Cloud:** A provider such as AWS makes infrastructure and services available on demand, reducing the need to procure and install physical servers before using them.
-
 ### Common AWS Use Cases
 
 AWS can be used for:
@@ -25,6 +20,11 @@ AWS can be used for:
 - Website hosting
 - Mobile and social applications
 - Gaming infrastructure
+
+### Cloud vs. On-Premises
+
+- **On-premises:** An organization purchases, installs, and operates physical infrastructure.
+- **Cloud:** A provider makes infrastructure and services available on demand.
 
 ## Brief History of AWS
 
@@ -59,13 +59,9 @@ Examples:
 - `eu-west-3` — Europe (Paris)
 - `ap-southeast-2` — Asia Pacific (Sydney)
 
-Most AWS services are **Region-scoped**. Resources and configurations in one Region generally need to be considered separately from those in another; the exact behavior depends on the service.
-
-AWS Regions are connected through AWS's global network infrastructure.
+Most AWS services are **Region-scoped**. Resources and configurations in one Region generally need to be considered separately from those in another, depending on the service. AWS Regions are connected through AWS's global network infrastructure.
 
 ### Choosing a Region
-
-Consider these factors when selecting a Region:
 
 | Factor | Why it matters |
 |---|---|
@@ -73,6 +69,29 @@ Consider these factors when selecting a Region:
 | Proximity to users | Deploying closer to users generally reduces network latency. |
 | Service availability | Not every AWS service or feature is available in every Region. |
 | Pricing | Service prices can vary between Regions; check the relevant AWS pricing page. |
+
+
+## AWS Management Console
+
+The **AWS Management Console** is a web interface for accessing and managing AWS services.
+
+- **Region selector:** Choose the Region in which to work with regional services.
+- **Services menu:** Browse services alphabetically or by category.
+- **Search:** Find services, features, documentation, knowledge articles, and blogs.
+- **Console Home:** May show recently visited services, account health, cost and usage information, and tutorials. Its layout can change over time.
+
+You do not need to be physically located in a Region to use it. Keep track of the selected Region during hands-on work: switching Regions changes the regional resources shown and can make existing resources appear to be missing.
+
+### Global vs. Regional Services
+
+- **Global services:** Not managed within one selected Region in the same way as regional services. Examples include IAM and Route 53.
+- **Regional services:** Resources are associated with a particular Region. Examples include Amazon EC2 and AWS Lambda.
+
+Check the documentation for a specific service to confirm its scope.
+
+### Checking Service Availability
+
+Before a lab or deployment, check the [AWS regional services list](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/) to confirm that the required services and features are available in your chosen Region.
 
 ## Availability Zones (AZs)
 
@@ -83,9 +102,7 @@ An **Availability Zone** is an isolated location within an AWS Region.
 - AZs within a Region are connected by high-bandwidth, low-latency networking.
 - Deploying application components across multiple AZs can improve availability and resilience.
 
-Example: the Sydney Region is `ap-southeast-2`. The course material illustrates AZ identifiers such as `ap-southeast-2a`, `ap-southeast-2b`, and `ap-southeast-2c`.
-
-The number and physical layout of AZs can vary by Region. AWS does not expose every detail of the underlying data-center layout.
+Example: the Sydney Region is `ap-southeast-2`. The course material illustrates AZ identifiers such as `ap-southeast-2a`, `ap-southeast-2b`, and `ap-southeast-2c`. The number and physical layout of AZs can vary by Region. AWS does not expose every detail of the underlying data-center layout.
 
 ## Edge Locations / Points of Presence
 
@@ -105,11 +122,15 @@ Infrastructure counts change over time, so use current AWS documentation for up-
 | Availability Zone | Isolated infrastructure location within a Region; supports resilience. |
 | Data center | Physical facility that hosts computing infrastructure. |
 | Edge location / PoP | Helps bring supported services and content closer to end users. |
+| Console Region selector | Determines which Region's resources are shown for regional services. |
+| Global service | Service not tied to one selected Region in the same way as a regional service. |
 
-**Remember:** Regions help determine geographic placement, multiple AZs help improve resilience, and edge locations help bring content closer to users.
+**Remember:** Regions help determine geographic placement, multiple AZs help improve resilience, and edge locations help bring content closer to users. For labs, verify the selected Region and service availability.
 
 ## Reference
 
 - [AWS Global Infrastructure](https://aws.amazon.com/about-aws/global-infrastructure/)
 - [AWS Infrastructure Map](https://infrastructure.aws/)
+- [AWS Regional Services List](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/)
+
 
