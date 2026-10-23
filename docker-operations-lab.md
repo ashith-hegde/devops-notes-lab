@@ -45,10 +45,11 @@ See [`docker-healthchecks-and-restart-policies.md`](docker-healthchecks-and-rest
 - [x] Generate CPU load and observe the effect of the 0.5 CPU limit.
 - [x] Stop the CPU workload and verify usage returns to idle.
 - [x] Compare temporary disk-file usage with reported container memory usage.
-- [ ] Complete a controlled memory-allocation experiment.
-- [ ] Safely test memory pressure / OOM behavior.
-- [ ] Record exit status and whether Docker reports `OOMKilled`.
+- [x] Complete a controlled memory-allocation experiment.
+- [x] Safely test memory pressure / OOM behavior.
+- [x] Record exit status and whether Docker reports `OOMKilled`.
 
+See [`docker-resource-limits-and-monitoring.md`](docker-resource-limits-and-monitoring.md) for the detailed commands, observed outputs, and conclusions.
 
 ### 4. Troubleshooting Workflow
 
@@ -200,7 +201,34 @@ A background process wrote 2 MiB zero-filled files under `/tmp` in repeated iter
 - `du -sh /tmp` reported `68.0M`.
 - `docker stats` reported approximately `4.656 MiB / 128 MiB` of memory, `36.7 MB` block I/O, and four PIDs.
 
-This demonstrates that the amount of data written to disk is not equivalent to the amount of resident memory reported by `docker stats`. The memory-pressure and OOM behavior experiment has **not** yet been completed; do not treat the file-writing test as an OOM test.
+This demonstrates that the amount of data written to disk is not equivalent to the amount of resident memory reported by `docker stats`. The file-writing experiment was not a RAM-pressure test and was removed before the controlled memory test.
+
+**Controlled memory-pressure / OOM experiment:**
+
+A separate container named `ops-memory-stress` was run with a 32 MiB memory limit and `--memory-swap=32m`. The `python:3.13-alpine` image ran a Python script that allocated and retained 1 MiB `bytearray` chunks, pausing between allocations.
+
+- `docker stats ops-memory-stress` reached `31.94MiB / 32MiB` (**99.80%** memory usage).
+- The script printed successful allocation messages through approximately 28 MiB, then stopped before reaching its intended 40 MiB allocation target.
+- Inspection confirmed the outcome:
+
+```bash
+docker inspect ops-memory-stress --format 'Status={{.State.Status}} OOMKilled={{.State.OOMKilled}} ExitCode={{.State.ExitCode}}'
+```
+
+Observed output:
+
+```text
+Status=exited OOMKilled=true ExitCode=137
+```
+
+`OOMKilled=true` confirms that Docker recorded an out-of-memory kill. Exit code `137` is consistent with termination by `SIGKILL` (128 + signal 9). Python's runtime memory overhead also consumes the container's memory budget, so the process was killed before it could retain 32 MiB of payload allocations. The test container was removed after verification.
+
+**Key resource-limit conclusions:**
+
+- `docker stats` reports a point-in-time view of container CPU, memory, network I/O, block I/O, and process count.
+- `--memory=32m` sets the memory limit for the stress container. Setting `--memory-swap=32m` to the same value means the configured memory-plus-swap limit is also 32 MiB, leaving no additional swap allowance beyond that limit.
+- Disk writes and block I/O are not equivalent to resident memory usage; use a process that actually allocates and retains memory to test memory pressure.
+- `docker inspect` fields such as `.State.OOMKilled`, `.State.ExitCode`, and `.State.Status` help confirm how a test container ended. Do not infer an OOM kill from memory usage alone.
 
 ### Checkpoint 4 — Troubleshooting Workflow
 
@@ -236,6 +264,8 @@ _TODO_
 
 ## Related Notes
 
+- [`docker-healthchecks-and-restart-policies.md`](docker-healthchecks-and-restart-policies.md)
+- [`docker-resource-limits-and-monitoring.md`](docker-resource-limits-and-monitoring.md)
 - [`docker-images-and-containers.md`](docker-images-and-containers.md)
 - [`docker-networking.md`](docker-networking.md)
 - [`docker-volumes-and-bind-mounts.md`](docker-volumes-and-bind-mounts.md)
